@@ -115,9 +115,13 @@ describe(PersonService.name, () => {
 
   describe('getAll', () => {
     it('should get all hidden and visible people with thumbnails', async () => {
-      personMock.getAllForUser.mockResolvedValue([personStub.withName, personStub.hidden]);
+      personMock.getAllForUser.mockResolvedValue({
+        items: [personStub.withName, personStub.hidden],
+        hasNextPage: false,
+      });
       personMock.getNumberOfPeople.mockResolvedValue({ total: 2, hidden: 1 });
-      await expect(sut.getAll(authStub.admin, { withHidden: true })).resolves.toEqual({
+      await expect(sut.getAll(authStub.admin, { withHidden: true, page: 1, size: 10 })).resolves.toEqual({
+        hasNextPage: false,
         total: 2,
         hidden: 1,
         people: [
@@ -132,7 +136,7 @@ describe(PersonService.name, () => {
           },
         ],
       });
-      expect(personMock.getAllForUser).toHaveBeenCalledWith(authStub.admin.user.id, {
+      expect(personMock.getAllForUser).toHaveBeenCalledWith({ skip: 0, take: 10 }, authStub.admin.user.id, {
         minimumFaceCount: 3,
         withHidden: true,
       });
@@ -252,15 +256,15 @@ describe(PersonService.name, () => {
       personMock.getAssets.mockResolvedValue([assetStub.image]);
       accessMock.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
 
-      await expect(sut.update(authStub.admin, 'person-1', { birthDate: new Date('1976-06-30') })).resolves.toEqual({
+      await expect(sut.update(authStub.admin, 'person-1', { birthDate: '1976-06-30' })).resolves.toEqual({
         id: 'person-1',
         name: 'Person 1',
-        birthDate: new Date('1976-06-30'),
+        birthDate: '1976-06-30',
         thumbnailPath: '/path/to/thumbnail.jpg',
         isHidden: false,
         updatedAt: expect.any(Date),
       });
-      expect(personMock.update).toHaveBeenCalledWith({ id: 'person-1', birthDate: new Date('1976-06-30') });
+      expect(personMock.update).toHaveBeenCalledWith({ id: 'person-1', birthDate: '1976-06-30' });
       expect(jobMock.queue).not.toHaveBeenCalled();
       expect(jobMock.queueAll).not.toHaveBeenCalled();
       expect(accessMock.person.checkOwnerAccess).toHaveBeenCalledWith(authStub.admin.user.id, new Set(['person-1']));
